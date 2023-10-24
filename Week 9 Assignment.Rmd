@@ -1,0 +1,70 @@
+---
+title: "Week 9 Assignment"
+author: "Kelly Eng"
+date: "2023-10-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load required packages
+```{r load-packages}
+library(tidyverse)
+library(httr)
+library(jsonlite)
+```
+
+Making a GET Request from the New York Times Best Sellers List
+```{r get-request}
+base_url <- 'https://api.nytimes.com/svc/books/v3/lists.json'
+api_key <- 'O7juBZuQkqRBleiDZZwtXNZ8iGxehYcq'
+
+api_params <- list(
+  'api-key' = api_key,
+  'list' = 'hardcover-fiction',
+  'bestsellers-date' = '2023-10-11'
+)
+
+response <- GET(url = base_url, query = api_params)
+results <- fromJSON(content(response, "text"))
+```
+
+Examining the DataFrame
+```{r examine-df}
+# There are 5 columns, status, copyright, num_results, last_modified, & results
+# results$status is the status code, the code received OK which means the request is successful
+# results$copyright is the copyright information
+# results$num_results contains the number oh hardcover fiction books on the list during October 11 2023 which is 15
+# results$last_modified contains the date the list was last modified
+# results$results is the dataframe and contains the data we're interested in
+head(results)
+
+top_sellers_list_df <- results$results
+# It contains lists for 3 of it's columns, inside of them are dataframes for each book on the list
+glimpse(top_sellers_list_df)
+
+# We want the dataframes inside the book_details column
+# Unfortunately the way the NY Times does it is making each data frame have only one row for each book
+# There are 10 columns, the ones I'll choose to focus on are title, author, & publisher
+str(top_sellers_list_df$book_details[[1]])
+```
+
+Creating DataFrame of all the hardcover fiction books on the best sellers list
+```{r create-df}
+title <- c()
+author <- c()
+publisher <- c()
+
+for (i in 1:15) {
+  cur <- top_sellers_list_df$book_details[[i]]
+  title[i] <- cur$title
+  author[i] <- cur$author
+  publisher[i] <- cur$publisher
+}
+
+top_15_hardcover_fiction_df <- data.frame(Title = title, Author = author, Publisher = publisher)
+
+print(top_15_hardcover_fiction_df)
+```
